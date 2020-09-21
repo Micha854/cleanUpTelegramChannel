@@ -7,7 +7,8 @@ before you start you have to deactivate /setprivacy in @BotFather!
 
 "Sign messages" must be activated in all channels!
 
-start the cleanup with "python3 del.py config.ini 2500"
+start the cleanup with 
+## python3 clean.py config.ini 2500
 
 2500 specifies the message_id from which to delete. All previous ids are ignored!
 if you want to delete all ids use "0" as the start parameter
