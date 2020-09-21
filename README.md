@@ -1,4 +1,7 @@
 # cleanUpTelegramChannel
+
+#### HELP ON DISCORD: https://discord.gg/rgkcZ6b
+
 with this tool you can clean up your telegram channels
 
 use the same bot token in all channels that you want to clean up. you create a separate config for each telegram channel.
