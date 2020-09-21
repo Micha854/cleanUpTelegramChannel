@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "Micha854"
 __copyright__ = "Copyright 2020, Micha854"
-__version__ = "0.10.2"
+__version__ = "0.10.3"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -19,9 +19,6 @@ def write_json(feeds, filename='response.json'):
     with open(filename, mode='w', encoding='utf8') as data: 
         json.dump(feeds, data, ensure_ascii=False, indent=4) 
 
-### DUBUG MODE
-debug = False
-
 ### no config specified
 if len(sys.argv) <= 1:
     print("Es wurde keine Config geladen...")
@@ -36,10 +33,11 @@ else:
     config = ConfigParser()
     config.read(sys.argv[1], encoding='utf-8')
 
-    token     = config["settings"]["token"]
-    chatid    = config["settings"]["chatid"]
-    save_ids  = ast.literal_eval(config["settings"]["save_ids"])
-    save_user = config["settings"]["save_user"]
+    token     = config.get("settings", "token")
+    chatid    = config.get("settings", "chatid")
+    save_ids  = ast.literal_eval(config.get("settings", "save_ids"))
+    save_user = config.get("settings", "save_user")
+    debug     = config.getboolean("settings", "debug")
 
     start = int(sys.argv[2])
     bot = telepot.Bot(token)
@@ -56,9 +54,18 @@ else:
     ### load response from getUpdates
     response = bot.getUpdates(offset=offset, allowed_updates=['channel_post', 'message'])
     last_update = 0
+
+    ### get chatid
+    try:
+        get_chatid = bot.getChat(chatid)
+    except:
+        get_chatid = {'id': None, 'title': 'CHAT NOT FOUND', 'type': None}
     
     ### debug
     if debug == True:
+        print("=====> chat info:")
+        pprint(get_chatid)
+        print("\n=====> getUpdates:")
         pprint(response)
         print("\n\n")
     
@@ -87,30 +94,34 @@ else:
         if 'channel_post' in message:
             messageID  = message['channel_post']['message_id']
             messageUSR = message['channel_post']['author_signature']
+            messageCHAT= message['channel_post']['chat']['id']
         elif 'message' in message:
             messageID  = message['message']['message_id']
             messageUSR = message['message']['from']['username']
+            messageCHAT= message['message']['chat']['id']
             
-        ### check whether the message is deleted
-        if messageID > start and messageID not in (save_ids) and messageUSR not in (save_user):
-            try:
-                bot.deleteMessage((chatid, messageID))
-                print("Nachricht " + str(messageID) + " wurde gelöscht!")
-                feeds.remove(message)
-                deleted +=1
-            except:
-                print("Konnte Nachricht " + str(messageID) + " nicht löschen!!!")
-                non_del +=1
-        ### message is not deleted
-        else:
-            if messageUSR in (save_user):
-                print("=====> Nachrichten von: " + str(save_user) + " werden nicht gelöscht!!!")
-            elif messageID in (save_ids):
-                print("=====> Nachricht: " + str(messageID) + " wird nicht gelöscht!!!")
-            elif start > messageID:
-                print("=====> Nachrichten kleiner ID: " + str(start) + " werden nicht gelöscht!!!")
-            
-            filter +=1
+        ### it is the chat_id from the config
+        if messageCHAT == get_chatid['id']:
+            ### check whether the message is deleted
+            if messageID > start and messageID not in (save_ids) and messageUSR not in (save_user):
+                try:
+                    bot.deleteMessage((chatid, messageID))
+                    print("Nachricht " + str(messageID) + " wurde gelöscht!")
+                    feeds.remove(message)
+                    deleted +=1
+                except:
+                    print("Konnte Nachricht " + str(messageID) + " nicht löschen!!!")
+                    non_del +=1
+            ### message is not deleted
+            else:
+                if messageUSR in (save_user):
+                    print("=====> Nachrichten von: " + str(save_user) + " werden nicht gelöscht!!!")
+                elif messageID in (save_ids):
+                    print("=====> Nachricht: " + str(messageID) + " wird nicht gelöscht!!!")
+                elif start > messageID:
+                    print("=====> Nachrichten kleiner ID: " + str(start) + " werden nicht gelöscht!!!")
+                
+                filter +=1
         
         ### get last update_id
         last_update = message['update_id']
@@ -125,7 +136,8 @@ else:
     write_json(feeds)
 
     ### result output
-    print("\n " + str(deleted) + " Nachrichten wurden gelöscht")
+    print("\n gelöscht von ==> " + str(get_chatid['type']) + " ==> " + str(get_chatid['title']) + ":\n")
+    print(" " + str(deleted) + " Nachrichten wurden gelöscht")
     print(" " + str(non_del) + " Nachrichten konnten nicht gelöscht werden")
     print(" " + str(filter) + " Nachrichten wurden aufgrund des Filters nicht gelöscht\n")
     
