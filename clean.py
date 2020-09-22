@@ -107,11 +107,11 @@ else:
                 try:
                     bot.deleteMessage((chatid, messageID))
                     print("Nachricht " + str(messageID) + " wurde gelöscht!")
-                    feeds.remove(message)
                     deleted +=1
                 except:
                     print("Konnte Nachricht " + str(messageID) + " nicht löschen!!!")
                     non_del +=1
+                feeds.remove(message)
             ### message is not deleted
             else:
                 if messageUSR in (save_user):
