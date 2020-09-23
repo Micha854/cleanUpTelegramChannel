@@ -109,14 +109,19 @@ else:
 
     ### go through all messages
     for message in feeds[:]:
-        if 'channel_post' in message:
-            messageID  = message['channel_post']['message_id']
-            messageUSR = message['channel_post']['author_signature']
-            messageCHAT= message['channel_post']['chat']['id']
-        elif 'message' in message:
-            messageID  = message['message']['message_id']
-            messageUSR = message['message']['from']['username']
-            messageCHAT= message['message']['chat']['id']
+        try:
+            if 'channel_post' in message:
+                messageID  = message['channel_post']['message_id']
+                messageUSR = message['channel_post']['author_signature']
+                messageCHAT= message['channel_post']['chat']['id']
+            elif 'message' in message:
+                messageID  = message['message']['message_id']
+                messageUSR = message['message']['from']['username']
+                messageCHAT= message['message']['chat']['id']
+        except:
+            messageID  = None
+            messageUSR = None
+            messageCHAT= None
 
         ### it is the chat_id from the config
         if messageCHAT == get_chatid['id']:
