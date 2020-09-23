@@ -56,7 +56,7 @@ else:
         with open("response.json") as feedsjson:
             feeds = json.load(feedsjson)
     else:
-        feeds = None
+        feeds = []
 
     ### fetch all updates and save to json
     last_update = 0
