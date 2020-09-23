@@ -59,6 +59,7 @@ else:
         feeds = []
 
     ### fetch all updates and save to json
+    channels = []
     last_update = 0
     fetch = 0
     while True:
@@ -68,10 +69,21 @@ else:
 
         ### load getUpdates data to response.json file
         for message in response:
+            try:
+                if 'channel_post' in message:
+                    title = message['channel_post']['chat']['title']
+                elif 'message' in message:
+                    title = message['message']['chat']['title']
+            except:
+                title = None
+
             if message['update_id'] not in feeds:
                 feeds.append(message)
                 last_update = message['update_id']
                 fetch += 1
+
+            if title not in channels:
+                channels.append(title)
 
         offset = last_update + 1
 
@@ -150,7 +162,7 @@ else:
     write_json(feeds)
 
     ### result output
-    print("\n Fetching " + str(fetch) + " Messages")
+    print("\n Fetching " + str(fetch) + " Messages from " + str(channels))
     print("\n gelöscht von ==> " + str(get_chatid['type']) + " ==> " + str(get_chatid['title']) + ":\n")
     print(" " + str(deleted) + " Nachrichten wurden gelöscht")
     print(" " + str(non_del) + " Nachrichten konnten nicht gelöscht werden")
