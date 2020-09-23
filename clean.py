@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "Micha854"
 __copyright__ = "Copyright 2020, Micha854"
-__version__ = "0.10.3"
+__version__ = "0.10.4"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -14,10 +14,10 @@ import json
 from pprint import pprint
 from configparser import ConfigParser
 
-# function to add to JSON 
-def write_json(feeds, filename='response.json'): 
-    with open(filename, mode='w', encoding='utf8') as data: 
-        json.dump(feeds, data, ensure_ascii=False, indent=4) 
+# function to add to JSON
+def write_json(feeds, filename='response.json'):
+    with open(filename, mode='w', encoding='utf8') as data:
+        json.dump(feeds, data, ensure_ascii=False, indent=4)
 
 ### no config specified
 if len(sys.argv) <= 1:
@@ -42,25 +42,52 @@ else:
     start = int(sys.argv[2])
     bot = telepot.Bot(token)
 
-    ### create update.txt file
+    ### readout next update_id
     if os.path.isfile('update.txt'):
         datei = open('update.txt','r')
         check_offset = datei.read()
-        offset = check_offset if int(check_offset) else 100000001
+        offset = check_offset
     ### set default update_id
     else:
         offset = 100000001
-    
-    ### load response from getUpdates
-    response = bot.getUpdates(offset=offset, allowed_updates=['channel_post', 'message'])
+
+    ### readout response.json
+    if os.path.isfile("response.json"):
+        with open("response.json") as feedsjson:
+            feeds = json.load(feedsjson)
+    else:
+        feeds = None
+
+    ### fetch all updates and save to json
     last_update = 0
+    fetch = 0
+    while True:
+
+        ### load response from getUpdates
+        response = bot.getUpdates(offset=offset, allowed_updates=['channel_post', 'message'])
+
+        ### load getUpdates data to response.json file
+        for message in response:
+            if message['update_id'] not in feeds:
+                feeds.append(message)
+                last_update = message['update_id']
+                fetch += 1
+
+        offset = last_update + 1
+
+        if len(response) < 100:
+            break
+
+        else:
+            print(" ...fetching " + str(fetch) + " messages")
+
 
     ### get chatid
     try:
         get_chatid = bot.getChat(chatid)
     except:
         get_chatid = {'id': None, 'title': 'CHAT NOT FOUND', 'type': None}
-    
+
     ### debug
     if debug == True:
         print("=====> chat info:")
@@ -68,21 +95,12 @@ else:
         print("\n=====> getUpdates:")
         pprint(response)
         print("\n\n")
-    
-    ### create response.json file
-    if not os.path.isfile("response.json"):
-        feeds = response
-        write_json(feeds)
 
-    ### load response.json
-    else:    
-        with open("response.json") as feedsjson:
-            feeds = json.load(feedsjson)
-
-        ### load getUpdates date to response.json file
-        for message in response:
-            if message['update_id'] not in feeds:
-                feeds.append(message)
+    ### save next update_id
+    if int(last_update):
+        f = open('update.txt', 'w')
+        f.write(str(last_update+1))
+        f.close()
 
     ### set result variables
     deleted = 0
@@ -90,7 +108,7 @@ else:
     filter  = 0
 
     ### go through all messages
-    for message in feeds:
+    for message in feeds[:]:
         if 'channel_post' in message:
             messageID  = message['channel_post']['message_id']
             messageUSR = message['channel_post']['author_signature']
@@ -99,7 +117,7 @@ else:
             messageID  = message['message']['message_id']
             messageUSR = message['message']['from']['username']
             messageCHAT= message['message']['chat']['id']
-            
+
         ### it is the chat_id from the config
         if messageCHAT == get_chatid['id']:
             ### check whether the message is deleted
@@ -120,24 +138,15 @@ else:
                     print("=====> Nachricht: " + str(messageID) + " wird nicht gelöscht!!!")
                 elif start > messageID:
                     print("=====> Nachrichten kleiner ID: " + str(start) + " werden nicht gelöscht!!!")
-                
-                filter +=1
-        
-        ### get last update_id
-        last_update = message['update_id']
 
-    ### save next update_id
-    if int(last_update):
-        f = open('update.txt', 'w')
-        f.write(str(last_update+1))
-        f.close()
+                filter +=1
 
     ### save response.json
     write_json(feeds)
 
     ### result output
+    print("\n Fetching " + str(fetch) + " Messages")
     print("\n gelöscht von ==> " + str(get_chatid['type']) + " ==> " + str(get_chatid['title']) + ":\n")
     print(" " + str(deleted) + " Nachrichten wurden gelöscht")
     print(" " + str(non_del) + " Nachrichten konnten nicht gelöscht werden")
     print(" " + str(filter) + " Nachrichten wurden aufgrund des Filters nicht gelöscht\n")
-    
